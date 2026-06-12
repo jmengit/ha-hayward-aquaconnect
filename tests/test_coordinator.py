@@ -79,7 +79,7 @@ class FakeClient:
         self.outcomes = list(outcomes)
         self.calls = 0
 
-    async def async_read_status(self):
+    async def async_read_status(self, *args, **kwargs):
         self.calls += 1
         outcome = self.outcomes.pop(0)
         if isinstance(outcome, Exception):

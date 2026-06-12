@@ -9,12 +9,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .client import AquaConnectCommandError
 from .const import DOMAIN
 from .entity import AquaConnectEntity
-from .slots import SWITCH_SLOTS, EquipmentSlot
+from .slots import EquipmentSlot
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(AquaConnectEquipmentSwitch(coordinator, slot) for slot in SWITCH_SLOTS)
+    async_add_entities(AquaConnectEquipmentSwitch(coordinator, slot) for slot in coordinator.switch_slots)
 
 
 class AquaConnectEquipmentSwitch(AquaConnectEntity, SwitchEntity):

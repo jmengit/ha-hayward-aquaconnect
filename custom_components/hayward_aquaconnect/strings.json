@@ -9,12 +9,14 @@
           "scan_interval": "Scan interval seconds",
           "command_timeout": "Command verification timeout seconds",
           "command_retries": "Command retries",
-          "button_delay": "Delay after button press seconds"
+          "button_delay": "Delay after button press seconds",
+          "slot_overrides": "Slot overrides JSON"
         }
       }
     },
     "error": {
-      "cannot_connect": "Could not connect to the AquaConnect local web server."
+      "cannot_connect": "Could not connect to the AquaConnect local web server.",
+      "invalid_json": "Slot overrides must be valid JSON."
     },
     "abort": {
       "already_configured": "This AquaConnect host is already configured."
@@ -28,7 +30,8 @@
           "scan_interval": "Scan interval seconds",
           "command_timeout": "Command verification timeout seconds",
           "command_retries": "Command retries",
-          "button_delay": "Delay after button press seconds"
+          "button_delay": "Delay after button press seconds",
+          "slot_overrides": "Slot overrides JSON"
         }
       }
     }

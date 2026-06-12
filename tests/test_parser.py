@@ -1,4 +1,5 @@
 from custom_components.hayward_aquaconnect.parser import decode_equipment, parse_payload
+from custom_components.hayward_aquaconnect.slots import resolve_equipment_slots
 
 
 def test_parse_live_style_status():
@@ -29,3 +30,17 @@ def test_decode_all_configured_slots():
     assert set(equipment) >= {"heat_pump", "pool", "deck_light", "waterfall", "filter_pump", "fount_lt", "pool_light"}
     assert equipment["heat_pump"]["press_key_id"] == "13"
     assert equipment["waterfall"]["press_key_id"] == "0A"
+
+
+def test_slot_overrides_change_metadata_and_preserve_defaults():
+    slots = resolve_equipment_slots(
+        {
+            "pool_light": {"name": "Spa Light", "press_key_id": "0E", "enable_switch": False},
+            "filter_pump": {"press_key_id": "99"},
+        }
+    )
+    equipment = decode_equipment("EDTDDCDD3333", slots=slots)
+    assert equipment["pool_light"]["name"] == "Spa Light"
+    assert equipment["pool_light"]["press_key_id"] == "0E"
+    assert equipment["filter_pump"]["press_key_id"] == "99"
+    assert equipment["pool_light"]["state"] == "off"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Mapping
 
 
 @dataclass(frozen=True)
@@ -13,7 +14,7 @@ class EquipmentSlot:
     enable_switch: bool = False
 
 
-EQUIPMENT_SLOTS: tuple[EquipmentSlot, ...] = (
+DEFAULT_EQUIPMENT_SLOTS: tuple[EquipmentSlot, ...] = (
     EquipmentSlot(0, "system_off", "System Off", False, "04"),
     EquipmentSlot(6, "heat_pump", "Heat Pump", True, "13"),
     EquipmentSlot(12, "aux3", "AUX3", False, "0C"),
@@ -30,6 +31,28 @@ EQUIPMENT_SLOTS: tuple[EquipmentSlot, ...] = (
     EquipmentSlot(10, "fount_lt", "Fire Goblets", True, "0B", True),
     EquipmentSlot(5, "pool_light", "Pool Light", True, "09", True),
 )
+
+# Backwards-compatible alias for callers that still import the defaults directly.
+EQUIPMENT_SLOTS = DEFAULT_EQUIPMENT_SLOTS
+
+
+def _resolve_slot(default: EquipmentSlot, override: Mapping[str, Any] | None) -> EquipmentSlot:
+    if not override:
+        return default
+    return EquipmentSlot(
+        default.key_index,
+        default.slug,
+        str(override.get("name", default.name)),
+        bool(override.get("used_default", default.used_default)),
+        str(override.get("press_key_id", default.press_key_id)).upper(),
+        bool(override.get("enable_switch", default.enable_switch)),
+    )
+
+
+def resolve_equipment_slots(overrides: Mapping[str, Mapping[str, Any]] | None = None) -> tuple[EquipmentSlot, ...]:
+    overrides = overrides or {}
+    return tuple(_resolve_slot(slot, overrides.get(slot.slug)) for slot in DEFAULT_EQUIPMENT_SLOTS)
+
 
 SLOTS_BY_SLUG = {slot.slug: slot for slot in EQUIPMENT_SLOTS}
 USED_SLOTS = tuple(slot for slot in EQUIPMENT_SLOTS if slot.used_default)

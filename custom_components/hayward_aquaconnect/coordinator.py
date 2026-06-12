@@ -10,11 +10,21 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import AquaConnectClient, AquaConnectError, CommandResult
-from .const import CONF_BUTTON_DELAY, CONF_COMMAND_RETRIES, CONF_COMMAND_TIMEOUT, DEFAULT_BUTTON_DELAY, DEFAULT_COMMAND_RETRIES, DEFAULT_COMMAND_TIMEOUT, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import (
+    CONF_BUTTON_DELAY,
+    CONF_COMMAND_RETRIES,
+    CONF_COMMAND_TIMEOUT,
+    CONF_SLOT_OVERRIDES,
+    DEFAULT_BUTTON_DELAY,
+    DEFAULT_COMMAND_RETRIES,
+    DEFAULT_COMMAND_TIMEOUT,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 from .parser import merge_status
+from .slots import EquipmentSlot, resolve_equipment_slots
 
 _LOGGER = logging.getLogger(__name__)
-
 _MAX_FAILURES_BEFORE_STALE = 4
 _FAILURE_2_COOLDOWN_FACTOR = 2
 _FAILURE_3_COOLDOWN_FACTOR = 4
@@ -31,6 +41,10 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_read_error: str | None = None
         self.consecutive_failures = 0
         self.cooldown_until: datetime | None = None
+        self.equipment_slots: tuple[EquipmentSlot, ...] = resolve_equipment_slots(entry.options.get(CONF_SLOT_OVERRIDES))
+        self.equipment_slots_by_slug = {slot.slug: slot for slot in self.equipment_slots}
+        self.used_slots = tuple(slot for slot in self.equipment_slots if slot.used_default)
+        self.switch_slots = tuple(slot for slot in self.equipment_slots if slot.enable_switch)
         self.scan_interval = int(entry.options.get("scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)))
         super().__init__(
             hass,
@@ -66,7 +80,7 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return self.data
 
         try:
-            status = await self.client.async_read_status()
+            status = await self.client.async_read_status(self.equipment_slots)
         except AquaConnectError as err:
             self.consecutive_failures += 1
             self.last_read_error = str(err)
@@ -96,6 +110,8 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result = await self.client.async_set_slot_state(
                 slug,
                 desired_on,
+                slots=self.equipment_slots,
+                slots_by_slug=self.equipment_slots_by_slug,
                 retries=retries,
                 verify_timeout=timeout,
                 button_delay=delay,

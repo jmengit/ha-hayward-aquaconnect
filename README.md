@@ -33,6 +33,36 @@ Tested against a Hayward AquaConnect AQ-CO-HOMENET local web UI that exposes:
 
 Use a DHCP reservation/static IP for the AquaConnect. Some AquaConnect hostnames contain underscores and may not resolve reliably.
 
+## Branding
+
+The repo includes local brand assets under `custom_components/hayward_aquaconnect/brand/` so HACS and Home Assistant can show the integration logo.
+
+## Configuration
+
+Default runtime values are kept conservative so the integration works immediately after install:
+
+- Scan interval: `5` seconds
+- Command verification timeout: `10` seconds
+- Command retries: `1`
+- Button delay: `0.75` seconds
+
+If another AquaConnect installation uses different button IDs or labels, open the integration options and paste a JSON object of slot overrides. Any values you omit keep the defaults.
+
+Example:
+
+```json
+{
+  "pool_light": {
+    "name": "Spa Light",
+    "press_key_id": "0E"
+  },
+  "filter_pump": {
+    "press_key_id": "08",
+    "enable_switch": true
+  }
+}
+```
+
 ## Entities
 
 ### Sensors
@@ -106,14 +136,6 @@ When a Home Assistant switch is toggled, the integration:
 7. Raises a Home Assistant error if the desired state cannot be verified.
 
 Each entity includes command diagnostic attributes such as `last_command_result` or `last_command_error` when applicable.
-
-Default command options:
-
-- Command verification timeout: 10 seconds
-- Command retries: 1
-- Button delay: 0.75 seconds
-
-These can be adjusted in the integration options.
 
 ## Known limitations
 

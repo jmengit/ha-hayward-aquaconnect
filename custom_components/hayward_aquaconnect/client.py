@@ -7,7 +7,7 @@ from typing import Any
 import aiohttp
 
 from .parser import AquaConnectStatus, parse_payload
-from .slots import SLOTS_BY_SLUG
+from .slots import EQUIPMENT_SLOTS, SLOTS_BY_SLUG, EquipmentSlot
 
 
 class AquaConnectError(Exception):
@@ -35,9 +35,9 @@ class AquaConnectClient:
         self.base_url = f"http://{self.host}"
         self._lock = asyncio.Lock()
 
-    async def async_read_status(self) -> AquaConnectStatus:
+    async def async_read_status(self, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLOTS) -> AquaConnectStatus:
         payload = await self._post("Update Local Server&", content_type="text/plain;charset=UTF-8")
-        return parse_payload(payload)
+        return parse_payload(payload, slots)
 
     async def async_press_key(self, key_id: str) -> str:
         return await self._post(f"KeyId={key_id}&", content_type="application/x-www-form-urlencoded")
@@ -56,14 +56,16 @@ class AquaConnectClient:
         slug: str,
         desired_on: bool,
         *,
+        slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLOTS,
+        slots_by_slug: dict[str, EquipmentSlot] | None = None,
         retries: int = 1,
         verify_timeout: float = 10.0,
         button_delay: float = 0.75,
     ) -> CommandResult:
         desired = "on" if desired_on else "off"
-        slot = SLOTS_BY_SLUG[slug]
+        slot = (slots_by_slug or SLOTS_BY_SLUG)[slug]
         async with self._lock:
-            initial = await self.async_read_status()
+            initial = await self.async_read_status(slots)
             current = initial.equipment.get(slug, {}).get("state")
             if current == desired:
                 return CommandResult(slug, desired, True, 0, current, "Already in desired state")
@@ -78,7 +80,7 @@ class AquaConnectClient:
                     await asyncio.sleep(button_delay)
                     deadline = asyncio.get_running_loop().time() + verify_timeout
                     while asyncio.get_running_loop().time() < deadline:
-                        status = await self.async_read_status()
+                        status = await self.async_read_status(slots)
                         last_state = status.equipment.get(slug, {}).get("state")
                         if last_state == desired:
                             return CommandResult(slug, desired, True, attempts, last_state, "Verified desired state")

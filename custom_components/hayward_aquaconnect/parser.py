@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from .slots import EQUIPMENT_SLOTS
+from .slots import EQUIPMENT_SLOTS, EquipmentSlot
 
 _STATUS_BY_NIBBLE = {
     "3": "nokey",
@@ -51,6 +51,7 @@ def _body_text(html: str) -> str:
         return html.strip()
     return match.group(1).replace("\r", "").replace("\n", "").strip()
 
+
 def _status_from_nibble(raw_leds: str, char_offset: int, hex_offset: int) -> str:
     if len(raw_leds) <= char_offset:
         return "unknown"
@@ -58,7 +59,7 @@ def _status_from_nibble(raw_leds: str, char_offset: int, hex_offset: int) -> str
     return _STATUS_BY_NIBBLE.get(nibble, "unknown")
 
 
-def decode_equipment(raw_leds: str | None) -> dict[str, dict[str, Any]]:
+def decode_equipment(raw_leds: str | None, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLOTS) -> dict[str, dict[str, Any]]:
     if not raw_leds:
         return {}
 
@@ -70,7 +71,7 @@ def decode_equipment(raw_leds: str | None) -> dict[str, dict[str, Any]]:
             decoded_slots.append(_status_from_nibble(raw_leds, index, 1))
 
     equipment: dict[str, dict[str, Any]] = {}
-    for slot in EQUIPMENT_SLOTS:
+    for slot in slots:
         state = decoded_slots[slot.key_index] if slot.key_index < len(decoded_slots) else "unknown"
         equipment[slot.slug] = {
             "name": slot.name,
@@ -82,7 +83,7 @@ def decode_equipment(raw_leds: str | None) -> dict[str, dict[str, Any]]:
     return equipment
 
 
-def parse_payload(payload: str) -> AquaConnectStatus:
+def parse_payload(payload: str, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLOTS) -> AquaConnectStatus:
     body = _body_text(payload)
     parts = [_clean_line(part) for part in body.split("xxx")]
     status = AquaConnectStatus()
@@ -112,7 +113,7 @@ def parse_payload(payload: str) -> AquaConnectStatus:
         if match := re.search(r"(\d+)%", status.display_line_2):
             status.chlorinator_percent = int(match.group(1))
 
-    status.equipment = decode_equipment(status.raw_leds)
+    status.equipment = decode_equipment(status.raw_leds, slots)
     return status
 
 

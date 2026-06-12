@@ -7,12 +7,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import AquaConnectEntity
-from .slots import USED_SLOTS, EquipmentSlot
+from .slots import EquipmentSlot
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in USED_SLOTS)
+    async_add_entities(AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in coordinator.used_slots)
 
 
 class AquaConnectEquipmentBinarySensor(AquaConnectEntity, BinarySensorEntity):
