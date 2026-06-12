@@ -24,7 +24,7 @@ jobs:
           TAG_VERSION="${TAG_VERSION#v}"
 
           MANIFEST_VERSION=$(python3 -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/hayward_aquaconnect/manifest.json").read_text())["version"])')
-          CONST_VERSION=$(python3 -c 'from pathlib import Path; import re; text = Path("custom_components/hayward_aquaconnect/const.py").read_text(); match = re.search(r"^VERSION: Final = \"([^\"]+)\"$", text, re.M); raise SystemExit("VERSION not found in const.py") if not match else None; print(match.group(1))')
+          CONST_VERSION=$(python3 -c 'from pathlib import Path; import re; text = Path("custom_components/hayward_aquaconnect/const.py").read_text(); match = re.search(r"^VERSION: Final = \"([^\"]+)\"$", text, re.M); import sys; sys.exit("VERSION not found in const.py") if match is None else print(match.group(1))')
 
           echo "Tag version:      $TAG_VERSION"
           echo "manifest.json:    $MANIFEST_VERSION"
