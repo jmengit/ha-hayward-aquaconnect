@@ -13,7 +13,7 @@ from .slots import EquipmentSlot
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [AquaConnectDisplayAlertBinarySensor(coordinator)]
+        [AquaConnectDisplayAlertBinarySensor(coordinator), AquaConnectConnectionAlertBinarySensor(coordinator)]
         + [AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in coordinator.used_slots]
     )
 
@@ -44,6 +44,34 @@ class AquaConnectDisplayAlertBinarySensor(AquaConnectEntity, BinarySensorEntity)
                 "display_page_kind": data.get("display_page_kind"),
                 "display_line_1": data.get("display_line_1"),
                 "display_line_2": data.get("display_line_2"),
+            }
+        )
+        return attrs
+
+
+class AquaConnectConnectionAlertBinarySensor(AquaConnectEntity, BinarySensorEntity):
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.data['host']}_connection_alert"
+        self._attr_name = "Connection Alert"
+        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator._read_status_state() != "healthy"
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes or {}
+        attrs.update(
+            {
+                "read_health": self.coordinator._read_status_state(),
+                "last_successful_read": self.coordinator.last_successful_read.isoformat()
+                if self.coordinator.last_successful_read
+                else None,
+                "consecutive_failures": self.coordinator.consecutive_failures,
+                "cooldown_until": self.coordinator.cooldown_until.isoformat() if self.coordinator.cooldown_until else None,
+                "last_read_error": self.coordinator.last_read_error,
             }
         )
         return attrs

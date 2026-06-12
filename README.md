@@ -103,9 +103,12 @@ Default read-failure behavior:
 
 This keeps the UI stable during brief hiccups while preventing stale data from looking current.
 
-### Display Alert binary sensor
+### Alert binary sensors
 
-The **Display Alert** problem binary sensor captures unexpected LCD text without firing during short menu/settings navigation. Non-standard display text is first exposed as a candidate in attributes. It only becomes an active alert after the same candidate text has been observed at least 3 times and has persisted for at least 3 minutes.
+Two simple `problem` binary sensors provide at-a-glance alerting:
+
+- **Display Alert** turns on for persistent unexpected LCD text. Non-standard display text is first exposed as a candidate in attributes. It only becomes an active alert after the same candidate text has been observed at least 3 times and has persisted for at least 3 minutes.
+- **Connection Alert** turns on when the integration is not successfully getting fresh reads from the AquaConnect device. It is on for `starting`, `degraded`, `cooldown`, or `stale` read-health states, and off only when reads are `healthy`.
 
 This allows brief manual menu use while still surfacing real persistent controller messages such as flow/salt/system warnings.
 
