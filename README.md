@@ -35,7 +35,12 @@ Use a DHCP reservation/static IP for the AquaConnect. Some AquaConnect hostnames
 
 ## Branding
 
-The repo includes local brand assets under `custom_components/hayward_aquaconnect/brand/` so HACS and Home Assistant can show the integration logo.
+The repo includes local brand assets in two places:
+
+- `brand/` at the repository root for HACS repository branding
+- `custom_components/hayward_aquaconnect/brand/` for Home Assistant integration branding
+
+Both locations include the same `icon.png` and `logo.png` assets so refreshes in HACS and Home Assistant can resolve them.
 
 ## Configuration
 
