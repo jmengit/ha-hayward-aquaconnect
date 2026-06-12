@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hayward AquaConnect",
+        "description": "Connect to a Hayward AquaConnect AQ-CO-HOMENET local web server.",
+        "data": {
+          "host": "Host or IP address",
+          "scan_interval": "Scan interval seconds",
+          "command_timeout": "Command verification timeout seconds",
+          "command_retries": "Command retries",
+          "button_delay": "Delay after button press seconds"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the AquaConnect local web server."
+    },
+    "abort": {
+      "already_configured": "This AquaConnect host is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hayward AquaConnect options",
+        "data": {
+          "scan_interval": "Scan interval seconds",
+          "command_timeout": "Command verification timeout seconds",
+          "command_retries": "Command retries",
+          "button_delay": "Delay after button press seconds"
+        }
+      }
+    }
+  }
+}

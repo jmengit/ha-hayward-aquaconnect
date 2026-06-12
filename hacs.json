@@ -1,0 +1,6 @@
+{
+  "name": "Hayward AquaConnect",
+  "render_readme": true,
+  "domains": ["sensor", "binary_sensor", "switch"],
+  "homeassistant": "2024.6.0"
+}

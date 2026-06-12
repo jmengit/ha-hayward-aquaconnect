@@ -1,0 +1,11 @@
+[project]
+name = "ha-hayward-aquaconnect"
+version = "0.1.0"
+description = "Home Assistant custom integration for Hayward AquaConnect AQ-CO-HOMENET"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -1,0 +1,13 @@
+{
+  "domain": "hayward_aquaconnect",
+  "name": "Hayward AquaConnect",
+  "after_dependencies": [],
+  "codeowners": ["@jmengit"],
+  "config_flow": true,
+  "documentation": "https://github.com/jmengit/ha-hayward-aquaconnect",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jmengit/ha-hayward-aquaconnect/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

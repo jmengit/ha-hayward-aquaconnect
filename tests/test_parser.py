@@ -1,0 +1,31 @@
+from custom_components.hayward_aquaconnect.parser import decode_equipment, parse_payload
+
+
+def test_parse_live_style_status():
+    payload = """<html><body>
+  Pool Chlorinator  xxx
+        75%         xxx
+EDTDDCDD3333xxx
+
+</body></html>"""
+    status = parse_payload(payload)
+    assert status.chlorinator_percent == 75
+    assert status.raw_leds == "EDTDDCDD3333"
+    assert status.equipment["pool"]["state"] == "on"
+    assert status.equipment["filter_pump"]["state"] == "on"
+    assert status.equipment["pool_light"]["state"] == "off"
+    assert status.equipment["deck_light"]["name"] == "Pool Deck Light"
+    assert status.equipment["fount_lt"]["name"] == "Fire Goblets"
+
+
+def test_parse_temperatures_and_salt():
+    assert parse_payload("<body>Pool Temp  85&#176F   xxx&nbspxxxEDTDDCDD3333xxx</body>").pool_temperature == 85
+    assert parse_payload("<body>Air Temp   76&#176F   xxx&nbspxxxEDTDDCDD3333xxx</body>").air_temperature == 76
+    assert parse_payload("<body>Salt Level     xxx      2700 PPM      xxxEDTDDCDD3333xxx</body>").salt_level == 2700
+
+
+def test_decode_all_configured_slots():
+    equipment = decode_equipment("EDTDDCDD3333")
+    assert set(equipment) >= {"heat_pump", "pool", "deck_light", "waterfall", "filter_pump", "fount_lt", "pool_light"}
+    assert equipment["heat_pump"]["press_key_id"] == "13"
+    assert equipment["waterfall"]["press_key_id"] == "0A"

@@ -1,0 +1,167 @@
+# Hayward AquaConnect for Home Assistant
+
+A Home Assistant custom integration for Hayward AquaConnect AQ-CO-HOMENET adapters using the local web server exposed by the device.
+
+This project is intentionally conservative: it supports read-only status and a small set of direct equipment switches. It does **not** automate deep LCD menu navigation, heater setpoints, schedules, timers, settings menus, or superchlorinate yet.
+
+## Supported hardware
+
+Tested against a Hayward AquaConnect AQ-CO-HOMENET local web UI that exposes:
+
+- `POST /WNewSt.htm` with body `Update Local Server&` for status
+- `POST /WNewSt.htm` with body `KeyId=<id>&` for direct button presses
+
+## Installation via HACS
+
+1. In Home Assistant, go to **HACS → Integrations → ⋮ → Custom repositories**.
+2. Add this repository URL:
+
+   ```text
+   https://github.com/jmengit/ha-hayward-aquaconnect
+   ```
+
+3. Category: **Integration**.
+4. Install **Hayward AquaConnect**.
+5. Restart Home Assistant.
+6. Go to **Settings → Devices & services → Add integration**.
+7. Search for **Hayward AquaConnect**.
+8. Enter your AquaConnect IP/host, for example:
+
+   ```text
+   192.168.86.182
+   ```
+
+Use a DHCP reservation/static IP for the AquaConnect. Some AquaConnect hostnames contain underscores and may not resolve reliably.
+
+## Entities
+
+### Sensors
+
+- Pool Temperature
+- Air Temperature
+- Salt Level
+- Chlorinator Percent
+- Display Line 1
+- Display Line 2
+- Raw LEDs
+
+The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page.
+
+### Status binary sensors
+
+Used equipment slots are exposed as status entities:
+
+- Heat Pump
+- Pool
+- Pool Deck Light
+- Cooling
+- Waterfall Pump
+- Filter Pump
+- Fire Goblets
+- Pool Light
+
+Unused slots are intentionally not exposed by default in this first version.
+
+### Direct switches
+
+The following direct switches are exposed:
+
+- Filter Pump
+- Pool Light
+- Pool Deck Light
+- Waterfall Pump
+- Fire Goblets
+
+Switches are intentionally limited to direct button slots. The integration does not navigate menus.
+
+## Switch safety and verification
+
+AquaConnect does not provide a modern command API. Switches emulate button presses against the local web UI.
+
+When a Home Assistant switch is toggled, the integration:
+
+1. Polls the current equipment state.
+2. If the target is already in the desired state, it does nothing.
+3. Sends one direct `KeyId=<id>&` button press.
+4. Waits briefly.
+5. Polls until the decoded LED state matches the desired state.
+6. Retries according to the integration option.
+7. Raises a Home Assistant error if the desired state cannot be verified.
+
+Each entity includes command diagnostic attributes such as `last_command_result` or `last_command_error` when applicable.
+
+Default command options:
+
+- Command verification timeout: 10 seconds
+- Command retries: 1
+- Button delay: 0.75 seconds
+
+These can be adjusted in the integration options.
+
+## Known limitations
+
+- This is local polling over the AquaConnect web UI, not an official Hayward API.
+- Deep functions are not implemented:
+  - timers
+  - settings menu
+  - schedule editing
+  - heater setpoints
+  - heat pump mode changes
+  - superchlorinate
+  - chlorinator output changes
+- Commands are serialized inside the integration so two switch commands do not run at the same time.
+- If someone manually uses the AquaConnect panel/app while Home Assistant is sending a command, verification may fail or the command may be rejected.
+
+## Future Phase 3: advanced helper design, not currently implemented
+
+If deeper functions are ever added, the recommended design is **not** to cram LCD menu navigation into Home Assistant entities directly.
+
+A future helper service could run as a local Docker container, for example `aquaconnectd`, and expose a higher-level API:
+
+```http
+GET  /api/status
+POST /api/equipment/filter_pump/on
+POST /api/heater/setpoint
+POST /api/chlorinator/superchlorinate
+POST /api/menu/navigate
+```
+
+Internally, that helper would own the hacky pieces:
+
+- a serialized command queue
+- timed button presses
+- screen/menu state machine
+- retry and rollback logic
+- recovery to the home/status screen
+- detailed debug logs
+- dry-run/read-only mode
+- command lockouts when state is uncertain
+
+The HACS integration could then support two modes:
+
+1. **Direct mode** — current behavior: read status and direct simple switches.
+2. **Helper mode** — talk to the Docker helper for advanced features.
+
+Advanced HA entities could then be added safely:
+
+- `climate` or `number` for heater setpoint
+- `button` for superchlorinate
+- `number` for chlorinator percentage
+- `select` for heat/cool modes
+- schedule/timer entities or services
+
+This project intentionally stops short of that for now.
+
+## Development
+
+Run parser tests:
+
+```bash
+python3 -m pytest tests
+```
+
+The parser and slot decoder can be tested without a Home Assistant runtime.
+
+## Privacy
+
+Do not commit personal IP addresses, Home Assistant tokens, router details, or local logs. Example IPs in documentation should be generic.
