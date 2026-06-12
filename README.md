@@ -40,7 +40,9 @@ The repo includes local brand assets in two places:
 - `brand/` at the repository root for HACS repository branding
 - `custom_components/hayward_aquaconnect/brand/` for Home Assistant integration branding
 
-Both locations include the same `icon.png` and `logo.png` assets so refreshes in HACS and Home Assistant can resolve them.
+Both locations include `icon.png`, `icon@2x.png`, `logo.png`, and `logo@2x.png` assets so refreshes in HACS and Home Assistant can resolve them.
+
+Older Home Assistant/HACS views may render update-card pictures from the public Home Assistant brands CDN instead of local custom integration files. For that path, the same assets also need to be published in `home-assistant/brands` under `custom_integrations/hayward_aquaconnect/`.
 
 ## Configuration
 
@@ -80,7 +82,9 @@ Example:
 - Display Line 2
 - Raw LEDs
 
-The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page.
+The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page. Values are also retained while the pump is off and a page is not available; individual measurements are cleared only after they have not been observed for 24 hours.
+
+Display-related sensors are diagnostic/disabled by default because the LCD rotates frequently.
 
 A diagnostic **Read Health** sensor is also available. It reports:
 
@@ -98,6 +102,12 @@ Default read-failure behavior:
 - failure 4: mark the integration stale and let Home Assistant surface entities as unavailable
 
 This keeps the UI stable during brief hiccups while preventing stale data from looking current.
+
+### Display Alert binary sensor
+
+The **Display Alert** problem binary sensor captures unexpected LCD text without firing during short menu/settings navigation. Non-standard display text is first exposed as a candidate in attributes. It only becomes an active alert after the same candidate text has been observed at least 3 times and has persisted for at least 3 minutes.
+
+This allows brief manual menu use while still surfacing real persistent controller messages such as flow/salt/system warnings.
 
 ### Status binary sensors
 

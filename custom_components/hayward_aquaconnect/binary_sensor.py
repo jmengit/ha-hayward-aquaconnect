@@ -36,6 +36,10 @@ class AquaConnectDisplayAlertBinarySensor(AquaConnectEntity, BinarySensorEntity)
         attrs.update(
             {
                 "message": data.get("display_alert"),
+                "candidate_message": data.get("display_alert_candidate"),
+                "candidate_since": data.get("display_alert_candidate_since"),
+                "candidate_observations": data.get("display_alert_observations"),
+                "confirmation_seconds": data.get("display_alert_confirmation_seconds"),
                 "display_message": data.get("display_message"),
                 "display_page_kind": data.get("display_page_kind"),
                 "display_line_1": data.get("display_line_1"),

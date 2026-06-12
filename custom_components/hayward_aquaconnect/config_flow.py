@@ -119,10 +119,10 @@ class AquaConnectOptionsFlow(config_entries.OptionsFlow):
         data = self.config_entry.data
         schema = vol.Schema(
             {
-                vol.Required(CONF_SCAN_INTERVAL, default=opts.get(CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))): vol.All(int, vol.Range(min=3, max=60)),
-                vol.Required(CONF_COMMAND_TIMEOUT, default=opts.get(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)): vol.All(float, vol.Range(min=2, max=60)),
+                vol.Required(CONF_SCAN_INTERVAL, default=opts.get(CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))): vol.All(vol.Coerce(float), vol.Range(min=3, max=60)),
+                vol.Required(CONF_COMMAND_TIMEOUT, default=opts.get(CONF_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)): vol.All(vol.Coerce(float), vol.Range(min=2, max=60)),
                 vol.Required(CONF_COMMAND_RETRIES, default=opts.get(CONF_COMMAND_RETRIES, DEFAULT_COMMAND_RETRIES)): vol.All(int, vol.Range(min=0, max=3)),
-                vol.Required(CONF_BUTTON_DELAY, default=opts.get(CONF_BUTTON_DELAY, DEFAULT_BUTTON_DELAY)): vol.All(float, vol.Range(min=0.25, max=5)),
+                vol.Required(CONF_BUTTON_DELAY, default=opts.get(CONF_BUTTON_DELAY, DEFAULT_BUTTON_DELAY)): vol.All(vol.Coerce(float), vol.Range(min=0.25, max=5)),
                 vol.Required(CONF_SLOT_OVERRIDES, default=_slot_overrides_to_text(opts.get(CONF_SLOT_OVERRIDES, {}))): str,
             }
         )

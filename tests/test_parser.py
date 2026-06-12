@@ -34,6 +34,10 @@ def test_classifies_routine_clock_and_alert_display_pages():
     assert routine.display_page_kind == "routine"
     assert routine.display_alert is None
 
+    air_temp = parse_payload("<body>Air Temp 79&#176F xxx&nbspxxxEDTDDCDD3333xxx</body>")
+    assert air_temp.display_page_kind == "routine"
+    assert air_temp.display_alert is None
+
     alert = parse_payload("<body>No Flow xxxCheck SystemxxxEDTDDCDD3333xxx</body>")
     assert alert.display_page_kind == "alert"
     assert alert.display_alert == "No Flow / Check System"

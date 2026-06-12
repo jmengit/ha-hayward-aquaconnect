@@ -49,7 +49,7 @@ jobs:
         shell: "bash"
         run: |
           cd "${{ github.workspace }}/custom_components/hayward_aquaconnect"
-          zip hayward_aquaconnect.zip -r ./
+          zip hayward_aquaconnect.zip -r ./ -x '*/__pycache__/*' '*.pyc'
 
       - name: "Upload the ZIP file to the release"
         uses: softprops/action-gh-release@v3.0.0

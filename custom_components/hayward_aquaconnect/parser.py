@@ -76,7 +76,7 @@ def _is_time_line(value: str | None) -> bool:
 def _display_page_kind(line_1: str | None, line_2: str | None) -> str:
     if line_1 and line_1.lower() in _WEEKDAYS and _is_time_line(line_2):
         return "clock"
-    if line_1 and line_1.lower() in _ROUTINE_DISPLAY_TITLES:
+    if line_1 and any(line_1.lower().startswith(title) for title in _ROUTINE_DISPLAY_TITLES):
         return "routine"
     if not line_1 and not line_2:
         return "unknown"
