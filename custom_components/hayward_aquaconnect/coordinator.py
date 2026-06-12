@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
@@ -15,6 +15,10 @@ from .parser import merge_status
 
 _LOGGER = logging.getLogger(__name__)
 
+_MAX_FAILURES_BEFORE_STALE = 4
+_FAILURE_2_COOLDOWN_FACTOR = 2
+_FAILURE_3_COOLDOWN_FACTOR = 4
+
 
 class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -23,20 +27,66 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.client = AquaConnectClient(async_get_clientsession(hass), host)
         self.last_command_result: dict[str, Any] | None = None
         self.last_command_error: str | None = None
-        scan_interval = entry.options.get("scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL))
+        self.last_successful_read: datetime | None = None
+        self.last_read_error: str | None = None
+        self.consecutive_failures = 0
+        self.cooldown_until: datetime | None = None
+        self.scan_interval = int(entry.options.get("scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)))
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=self.scan_interval),
         )
 
+    def _cooldown_for_failure(self, failures: int) -> timedelta | None:
+        if failures == 2:
+            return timedelta(seconds=self.scan_interval * _FAILURE_2_COOLDOWN_FACTOR)
+        if failures == 3:
+            return timedelta(seconds=self.scan_interval * _FAILURE_3_COOLDOWN_FACTOR)
+        return None
+
+    def _read_status_state(self) -> str:
+        if self.last_successful_read is None:
+            return "starting"
+        if self.consecutive_failures >= _MAX_FAILURES_BEFORE_STALE:
+            return "stale"
+        if self.consecutive_failures >= 2:
+            return "cooldown"
+        if self.consecutive_failures == 1:
+            return "degraded"
+        return "healthy"
+
     async def _async_update_data(self) -> dict[str, Any]:
+        now = datetime.now(UTC)
+        if self.cooldown_until and now < self.cooldown_until:
+            _LOGGER.debug("AquaConnect read cooldown active until %s", self.cooldown_until.isoformat())
+            if self.data is None:
+                raise UpdateFailed("AquaConnect is cooling down before first successful read")
+            return self.data
+
         try:
             status = await self.client.async_read_status()
-            return merge_status(self.data or {}, status)
         except AquaConnectError as err:
-            raise UpdateFailed(str(err)) from err
+            self.consecutive_failures += 1
+            self.last_read_error = str(err)
+            _LOGGER.warning(
+                "AquaConnect read failed (%s consecutive failures): %s",
+                self.consecutive_failures,
+                err,
+            )
+            cooldown = self._cooldown_for_failure(self.consecutive_failures)
+            if cooldown is not None:
+                self.cooldown_until = now + cooldown
+            if self.data is None or self.consecutive_failures >= _MAX_FAILURES_BEFORE_STALE:
+                raise UpdateFailed(str(err)) from err
+            return self.data
+
+        self.consecutive_failures = 0
+        self.cooldown_until = None
+        self.last_read_error = None
+        self.last_successful_read = now
+        return merge_status(self.data or {}, status)
 
     async def async_set_switch(self, slug: str, desired_on: bool) -> CommandResult:
         retries = int(self.entry.options.get(CONF_COMMAND_RETRIES, DEFAULT_COMMAND_RETRIES))

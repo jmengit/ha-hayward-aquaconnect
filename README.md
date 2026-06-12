@@ -47,6 +47,23 @@ Use a DHCP reservation/static IP for the AquaConnect. Some AquaConnect hostnames
 
 The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page.
 
+A diagnostic **Read Health** sensor is also available. It reports:
+
+- `healthy` — fresh read stream
+- `degraded` — one recent failure
+- `cooldown` — two or three consecutive failures, with backoff between retries
+- `stale` — four consecutive failures; core entities become unavailable until a good read returns
+
+Default read-failure behavior:
+
+- success: normal refresh every scan interval
+- failure 1: keep last good values
+- failure 2: enter cooldown at 2× the scan interval
+- failure 3: enter longer cooldown at 4× the scan interval
+- failure 4: mark the integration stale and let Home Assistant surface entities as unavailable
+
+This keeps the UI stable during brief hiccups while preventing stale data from looking current.
+
 ### Status binary sensors
 
 Used equipment slots are exposed as status entities:

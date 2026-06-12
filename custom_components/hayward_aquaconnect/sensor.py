@@ -15,7 +15,8 @@ from .entity import AquaConnectEntity
 
 @dataclass(frozen=True, kw_only=True)
 class AquaConnectSensorDescription(SensorEntityDescription):
-    data_key: str
+    data_key: str | None = None
+    diagnostic: bool = False
 
 
 SENSORS: tuple[AquaConnectSensorDescription, ...] = (
@@ -56,6 +57,7 @@ SENSORS: tuple[AquaConnectSensorDescription, ...] = (
     AquaConnectSensorDescription(key="display_line_1", name="Display Line 1", data_key="display_line_1"),
     AquaConnectSensorDescription(key="display_line_2", name="Display Line 2", data_key="display_line_2"),
     AquaConnectSensorDescription(key="raw_leds", name="Raw LEDs", data_key="raw_leds"),
+    AquaConnectSensorDescription(key="read_health", name="Read Health", diagnostic=True),
 )
 
 
@@ -72,7 +74,25 @@ class AquaConnectSensor(AquaConnectEntity, SensorEntity):
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.entry.data['host']}_{description.key}"
         self._attr_name = description.name
+        if description.diagnostic:
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def native_value(self) -> Any:
+        if self.entity_description.key == "read_health":
+            return self.coordinator._read_status_state()
         return (self.coordinator.data or {}).get(self.entity_description.data_key)
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes or {}
+        if self.entity_description.key == "read_health":
+            attrs.update(
+                {
+                    "last_successful_read": self.coordinator.last_successful_read.isoformat() if self.coordinator.last_successful_read else None,
+                    "consecutive_failures": self.coordinator.consecutive_failures,
+                    "cooldown_until": self.coordinator.cooldown_until.isoformat() if self.coordinator.cooldown_until else None,
+                    "last_read_error": self.coordinator.last_read_error,
+                }
+            )
+        return attrs
