@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -12,7 +12,37 @@ from .slots import EquipmentSlot
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in coordinator.used_slots)
+    async_add_entities(
+        [AquaConnectDisplayAlertBinarySensor(coordinator)]
+        + [AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in coordinator.used_slots]
+    )
+
+
+class AquaConnectDisplayAlertBinarySensor(AquaConnectEntity, BinarySensorEntity):
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.data['host']}_display_alert"
+        self._attr_name = "Display Alert"
+        self._attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self) -> bool:
+        return bool((self.coordinator.data or {}).get("display_alert"))
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes or {}
+        data = self.coordinator.data or {}
+        attrs.update(
+            {
+                "message": data.get("display_alert"),
+                "display_message": data.get("display_message"),
+                "display_page_kind": data.get("display_page_kind"),
+                "display_line_1": data.get("display_line_1"),
+                "display_line_2": data.get("display_line_2"),
+            }
+        )
+        return attrs
 
 
 class AquaConnectEquipmentBinarySensor(AquaConnectEntity, BinarySensorEntity):

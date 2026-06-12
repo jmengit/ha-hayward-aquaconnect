@@ -13,11 +13,23 @@ _STATUS_BY_NIBBLE = {
     "6": "blink",
 }
 
+_WEEKDAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+_ROUTINE_DISPLAY_TITLES = {
+    "air temp",
+    "pool temp",
+    "salt level",
+    "pool chlorinator",
+    "heat pump",
+}
+
 
 @dataclass
 class AquaConnectStatus:
     display_line_1: str | None = None
     display_line_2: str | None = None
+    display_message: str | None = None
+    display_page_kind: str | None = None
+    display_alert: str | None = None
     raw_leds: str | None = None
     pool_temperature: int | None = None
     air_temperature: int | None = None
@@ -29,6 +41,9 @@ class AquaConnectStatus:
         return {
             "display_line_1": self.display_line_1,
             "display_line_2": self.display_line_2,
+            "display_message": self.display_message,
+            "display_page_kind": self.display_page_kind,
+            "display_alert": self.display_alert,
             "raw_leds": self.raw_leds,
             "pool_temperature": self.pool_temperature,
             "air_temperature": self.air_temperature,
@@ -50,6 +65,22 @@ def _body_text(html: str) -> str:
     if not match:
         return html.strip()
     return match.group(1).replace("\r", "").replace("\n", "").strip()
+
+
+def _is_time_line(value: str | None) -> bool:
+    if not value:
+        return False
+    return bool(re.fullmatch(r"\d{1,2}:\d{2}\s*[AP]", value.strip(), re.I))
+
+
+def _display_page_kind(line_1: str | None, line_2: str | None) -> str:
+    if line_1 and line_1.lower() in _WEEKDAYS and _is_time_line(line_2):
+        return "clock"
+    if line_1 and line_1.lower() in _ROUTINE_DISPLAY_TITLES:
+        return "routine"
+    if not line_1 and not line_2:
+        return "unknown"
+    return "alert"
 
 
 def _status_from_nibble(raw_leds: str, char_offset: int, hex_offset: int) -> str:
@@ -95,6 +126,11 @@ def parse_payload(payload: str, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLO
     if len(parts) > 2:
         status.raw_leds = parts[2]
 
+    status.display_message = " / ".join(part for part in (status.display_line_1, status.display_line_2) if part) or None
+    status.display_page_kind = _display_page_kind(status.display_line_1, status.display_line_2)
+    if status.display_page_kind == "alert":
+        status.display_alert = status.display_message
+
     text = " ".join(part for part in parts[:2] if part)
     if match := re.search(r"Air Temp\s+(\d+)", text, re.I):
         status.air_temperature = int(match.group(1))
@@ -125,6 +161,8 @@ def merge_status(previous: dict[str, Any], current: AquaConnectStatus) -> dict[s
         if key == "equipment":
             if value:
                 merged[key] = value
+        elif key == "display_alert":
+            merged[key] = value
         elif value is not None:
             merged[key] = value
     return merged

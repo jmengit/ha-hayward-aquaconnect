@@ -54,9 +54,31 @@ SENSORS: tuple[AquaConnectSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    AquaConnectSensorDescription(key="display_line_1", name="Display Line 1", data_key="display_line_1"),
-    AquaConnectSensorDescription(key="display_line_2", name="Display Line 2", data_key="display_line_2"),
-    AquaConnectSensorDescription(key="raw_leds", name="Raw LEDs", data_key="raw_leds"),
+    AquaConnectSensorDescription(
+        key="display_line_1",
+        name="Display Line 1",
+        data_key="display_line_1",
+        diagnostic=True,
+    ),
+    AquaConnectSensorDescription(
+        key="display_line_2",
+        name="Display Line 2",
+        data_key="display_line_2",
+        diagnostic=True,
+    ),
+    AquaConnectSensorDescription(
+        key="display_message",
+        name="Display Message",
+        data_key="display_message",
+        diagnostic=True,
+    ),
+    AquaConnectSensorDescription(
+        key="display_page_kind",
+        name="Display Page Kind",
+        data_key="display_page_kind",
+        diagnostic=True,
+    ),
+    AquaConnectSensorDescription(key="raw_leds", name="Raw LEDs", data_key="raw_leds", diagnostic=True),
     AquaConnectSensorDescription(key="read_health", name="Read Health", diagnostic=True),
 )
 

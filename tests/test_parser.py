@@ -25,6 +25,30 @@ def test_parse_temperatures_and_salt():
     assert parse_payload("<body>Salt Level     xxx      2700 PPM      xxxEDTDDCDD3333xxx</body>").salt_level == 2700
 
 
+def test_classifies_routine_clock_and_alert_display_pages():
+    clock = parse_payload("<body>Friday xxx10:57AxxxEDTDDCDD3333xxx</body>")
+    assert clock.display_page_kind == "clock"
+    assert clock.display_alert is None
+
+    routine = parse_payload("<body>Heat Pump xxxManual OffxxxEDTDDCDD3333xxx</body>")
+    assert routine.display_page_kind == "routine"
+    assert routine.display_alert is None
+
+    alert = parse_payload("<body>No Flow xxxCheck SystemxxxEDTDDCDD3333xxx</body>")
+    assert alert.display_page_kind == "alert"
+    assert alert.display_alert == "No Flow / Check System"
+
+
+def test_merge_clears_display_alert_after_routine_page():
+    from custom_components.hayward_aquaconnect.parser import merge_status
+
+    previous = parse_payload("<body>No Flow xxxCheck SystemxxxEDTDDCDD3333xxx</body>").as_dict()
+    routine = parse_payload("<body>Salt Level xxx2700 PPMxxxEDTDDCDD3333xxx</body>")
+    merged = merge_status(previous, routine)
+    assert merged["display_page_kind"] == "routine"
+    assert merged["display_alert"] is None
+
+
 def test_decode_all_configured_slots():
     equipment = decode_equipment("EDTDDCDD3333")
     assert set(equipment) >= {"heat_pump", "pool", "deck_light", "waterfall", "filter_pump", "fount_lt", "pool_light"}
