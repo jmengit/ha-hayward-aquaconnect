@@ -103,6 +103,8 @@ Default read-failure behavior:
 
 This keeps the UI stable during brief hiccups while preventing stale data from looking current.
 
+Read Health is the detailed diagnostic state. For automations and notifications, use the simple **Connection Alert** binary sensor instead.
+
 ### Alert binary sensors
 
 Two simple `problem` binary sensors provide at-a-glance alerting:
