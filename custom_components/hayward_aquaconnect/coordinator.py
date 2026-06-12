@@ -45,7 +45,7 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.equipment_slots_by_slug = {slot.slug: slot for slot in self.equipment_slots}
         self.used_slots = tuple(slot for slot in self.equipment_slots if slot.used_default)
         self.switch_slots = tuple(slot for slot in self.equipment_slots if slot.enable_switch)
-        self.scan_interval = int(entry.options.get("scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)))
+        self.scan_interval = float(entry.options.get("scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)))
         super().__init__(
             hass,
             _LOGGER,

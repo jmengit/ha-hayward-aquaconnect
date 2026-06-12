@@ -85,10 +85,10 @@ class AquaConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_HOST, default="192.168.86.182"): str,
-                vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(int, vol.Range(min=3, max=60)),
-                vol.Required(CONF_COMMAND_TIMEOUT, default=DEFAULT_COMMAND_TIMEOUT): vol.All(float, vol.Range(min=2, max=60)),
+                vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(vol.Coerce(float), vol.Range(min=3, max=60)),
+                vol.Required(CONF_COMMAND_TIMEOUT, default=DEFAULT_COMMAND_TIMEOUT): vol.All(vol.Coerce(float), vol.Range(min=2, max=60)),
                 vol.Required(CONF_COMMAND_RETRIES, default=DEFAULT_COMMAND_RETRIES): vol.All(int, vol.Range(min=0, max=3)),
-                vol.Required(CONF_BUTTON_DELAY, default=DEFAULT_BUTTON_DELAY): vol.All(float, vol.Range(min=0.25, max=5)),
+                vol.Required(CONF_BUTTON_DELAY, default=DEFAULT_BUTTON_DELAY): vol.All(vol.Coerce(float), vol.Range(min=0.25, max=5)),
                 vol.Optional(CONF_SLOT_OVERRIDES, default=""): str,
             }
         )
