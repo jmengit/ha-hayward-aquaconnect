@@ -1,0 +1,57 @@
+name: "Release"
+
+on:
+  release:
+    types:
+      - "published"
+
+permissions: {}
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: write
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@v6"
+
+      - name: "Validate version numbers"
+        shell: "bash"
+        run: |
+          TAG_VERSION="${{ github.event.release.tag_name }}"
+          TAG_VERSION="${TAG_VERSION#v}"
+
+          MANIFEST_VERSION=$(python3 -c 'import json; from pathlib import Path; print(json.loads(Path("custom_components/hayward_aquaconnect/manifest.json").read_text())["version"])')
+          CONST_VERSION=$(python3 -c 'from pathlib import Path; import re; text = Path("custom_components/hayward_aquaconnect/const.py").read_text(); match = re.search(r"^VERSION: Final = \"([^\"]+)\"$", text, re.M); raise SystemExit("VERSION not found in const.py") if not match else None; print(match.group(1))')
+
+          echo "Tag version:      $TAG_VERSION"
+          echo "manifest.json:    $MANIFEST_VERSION"
+          echo "const.py:         $CONST_VERSION"
+
+          if [[ "$TAG_VERSION" != "$MANIFEST_VERSION" ]] || [[ "$TAG_VERSION" != "$CONST_VERSION" ]]; then
+            echo ""
+            echo "::error::Version mismatch detected!"
+            echo ""
+            echo "ERROR: Version mismatch!"
+            echo "  Tag:           $TAG_VERSION"
+            echo "  manifest.json: $MANIFEST_VERSION"
+            echo "  const.py:      $CONST_VERSION"
+            echo ""
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ All versions match: $TAG_VERSION"
+
+      - name: "ZIP the integration directory"
+        shell: "bash"
+        run: |
+          cd "${{ github.workspace }}/custom_components/hayward_aquaconnect"
+          zip hayward_aquaconnect.zip -r ./
+
+      - name: "Upload the ZIP file to the release"
+        uses: softprops/action-gh-release@v3.0.0
+        with:
+          files: ${{ github.workspace }}/custom_components/hayward_aquaconnect/hayward_aquaconnect.zip

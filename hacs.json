@@ -1,6 +1,9 @@
 {
   "name": "Hayward AquaConnect",
+  "content_in_root": false,
   "render_readme": true,
+  "zip_release": true,
+  "filename": "hayward_aquaconnect.zip",
   "domains": ["sensor", "binary_sensor", "switch"],
   "homeassistant": "2024.6.0"
 }

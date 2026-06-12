@@ -1,9 +1,12 @@
-DOMAIN = "hayward_aquaconnect"
-DEFAULT_NAME = "Hayward AquaConnect"
-DEFAULT_SCAN_INTERVAL = 5
-DEFAULT_COMMAND_TIMEOUT = 10
-DEFAULT_COMMAND_RETRIES = 1
-DEFAULT_BUTTON_DELAY = 0.75
+from typing import Final
+
+VERSION: Final = "0.2.1"
+DOMAIN: Final = "hayward_aquaconnect"
+DEFAULT_NAME: Final = "Hayward AquaConnect"
+DEFAULT_SCAN_INTERVAL: Final = 5
+DEFAULT_COMMAND_TIMEOUT: Final = 10
+DEFAULT_COMMAND_RETRIES: Final = 1
+DEFAULT_BUTTON_DELAY: Final = 0.75
 
 CONF_COMMAND_TIMEOUT = "command_timeout"
 CONF_COMMAND_RETRIES = "command_retries"
