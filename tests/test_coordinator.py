@@ -248,6 +248,51 @@ def test_check_system_display_alert_confirms_immediately_and_survives_rotation()
     asyncio.run(run())
 
 
+def test_confirmed_display_alert_stays_on_through_multi_page_error_cycle():
+    async def run():
+        entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
+        coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
+        check_system = AquaConnectStatus(
+            display_line_1="Check System",
+            display_message="Check System",
+            display_page_kind="alert",
+            display_alert="Check System",
+            raw_leds="EDTDDCDD3333",
+        )
+        inspect_cell = AquaConnectStatus(
+            display_line_1="Inspect Cell",
+            display_line_2="Hold + to reset",
+            display_message="Inspect Cell / Hold + to reset",
+            display_page_kind="alert",
+            display_alert="Inspect Cell / Hold + to reset",
+            raw_leds="EDTDDCDD3333",
+        )
+        routine = AquaConnectStatus(
+            display_line_1="Heat Pump",
+            display_line_2="Manual Off",
+            display_message="Heat Pump / Manual Off",
+            display_page_kind="routine",
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([check_system, inspect_cell, routine])
+
+        base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
+        FakeDatetime.times = [base, base + timedelta(seconds=5), base + timedelta(seconds=10)]
+
+        first = await cast(Any, coord).async_request_refresh()
+        assert first["display_alert"] == "Check System"
+
+        second = await cast(Any, coord).async_request_refresh()
+        assert second["display_alert"] == "Inspect Cell / Hold + to reset"
+        assert second["display_alert_candidate"] == "Inspect Cell / Hold + to reset"
+
+        third = await cast(Any, coord).async_request_refresh()
+        assert third["display_page_kind"] == "routine"
+        assert third["display_alert"] == "Inspect Cell / Hold + to reset"
+
+    asyncio.run(run())
+
+
 def test_display_alert_confirms_when_same_alert_recurs_between_routine_pages():
     async def run():
         entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
@@ -342,16 +387,50 @@ def test_display_alert_does_not_trigger_during_short_menu_navigation():
 
         first = await cast(Any, coord).async_request_refresh()
         assert first["display_alert"] is None
-        assert first["display_alert_candidate"] == "Settings Menu / Filter Time"
+        assert first["display_alert_candidate"] is None
 
         second = await cast(Any, coord).async_request_refresh()
         assert second["display_alert"] is None
-        assert second["display_alert_candidate"] == "Settings Menu / Heater Config"
+        assert second["display_alert_candidate"] is None
 
         third = await cast(Any, coord).async_request_refresh()
         assert third["display_alert"] is None
-        assert third["display_alert_candidate"] == "Settings Menu / Heater Config"
+        assert third["display_alert_candidate"] is None
         assert third["display_page_kind"] == "clock"
+
+    asyncio.run(run())
+
+
+def test_settings_menu_does_not_replace_confirmed_display_alert():
+    async def run():
+        entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
+        coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
+        alert = AquaConnectStatus(
+            display_line_1="Check System",
+            display_message="Check System",
+            display_page_kind="alert",
+            display_alert="Check System",
+            raw_leds="EDTDDCDD3333",
+        )
+        menu = AquaConnectStatus(
+            display_line_1="Settings Menu",
+            display_line_2="Filter Time",
+            display_message="Settings Menu / Filter Time",
+            display_page_kind="alert",
+            display_alert="Settings Menu / Filter Time",
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([alert, menu])
+
+        base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
+        FakeDatetime.times = [base, base + timedelta(seconds=5)]
+
+        first = await cast(Any, coord).async_request_refresh()
+        assert first["display_alert"] == "Check System"
+
+        second = await cast(Any, coord).async_request_refresh()
+        assert second["display_alert"] == "Check System"
+        assert second["display_alert_candidate"] == "Check System"
 
     asyncio.run(run())
 

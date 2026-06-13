@@ -32,6 +32,7 @@ _DISPLAY_ALERT_CONFIRMATION_WINDOW = timedelta(minutes=3)
 _DISPLAY_ALERT_MIN_OBSERVATIONS = 3
 _DISPLAY_ALERT_CLEAR_AFTER = timedelta(minutes=10)
 _IMMEDIATE_DISPLAY_ALERT_TERMS = ("check system",)
+_IGNORED_DISPLAY_ALERT_PREFIXES = ("settings menu",)
 _MEASUREMENT_STALE_AFTER = timedelta(hours=24)
 _MEASUREMENT_KEYS = (
     "pool_temperature",
@@ -96,14 +97,17 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _apply_display_alert_confirmation(self, merged: dict[str, Any], status, now: datetime) -> None:
         candidate = status.display_alert
+        if candidate and candidate.lower().startswith(_IGNORED_DISPLAY_ALERT_PREFIXES):
+            candidate = None
         if candidate:
             if candidate == self._display_alert_candidate and self._display_alert_first_seen is not None:
                 self._display_alert_observations += 1
             else:
+                already_confirmed = self._confirmed_display_alert is not None
                 self._display_alert_candidate = candidate
                 self._display_alert_first_seen = now
                 self._display_alert_observations = 1
-                self._confirmed_display_alert = None
+                self._confirmed_display_alert = candidate if already_confirmed else None
             self._display_alert_last_seen = now
 
             normalized_candidate = candidate.lower()
