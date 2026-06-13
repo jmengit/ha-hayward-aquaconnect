@@ -177,7 +177,40 @@ def test_cooldown_skips_device_reads():
     asyncio.run(run())
 
 
-def test_display_alert_requires_persistent_non_standard_text():
+def test_generic_display_alert_requires_persistent_non_standard_text():
+    async def run():
+        entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
+        coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
+        alert = AquaConnectStatus(
+            display_line_1="Service Required",
+            display_line_2="Inspect Cell",
+            display_message="Service Required / Inspect Cell",
+            display_page_kind="alert",
+            display_alert="Service Required / Inspect Cell",
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([alert, alert, alert])
+
+        base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
+        FakeDatetime.times = [base, base + timedelta(minutes=2), base + timedelta(minutes=3, seconds=1)]
+
+        first = await cast(Any, coord).async_request_refresh()
+        assert first["display_alert"] is None
+        assert first["display_alert_candidate"] == "Service Required / Inspect Cell"
+        assert first["display_alert_observations"] == 1
+
+        second = await cast(Any, coord).async_request_refresh()
+        assert second["display_alert"] is None
+        assert second["display_alert_observations"] == 2
+
+        third = await cast(Any, coord).async_request_refresh()
+        assert third["display_alert"] == "Service Required / Inspect Cell"
+        assert third["display_alert_observations"] == 3
+
+    asyncio.run(run())
+
+
+def test_check_system_display_alert_confirms_immediately_and_survives_rotation():
     async def run():
         entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
         coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
@@ -189,23 +222,86 @@ def test_display_alert_requires_persistent_non_standard_text():
             display_alert="No Flow / Check System",
             raw_leds="EDTDDCDD3333",
         )
-        cast(Any, coord).client = FakeClient([alert, alert, alert])
+        routine = AquaConnectStatus(
+            display_line_1="Salt Level",
+            display_line_2="2800 PPM",
+            display_message="Salt Level / 2800 PPM",
+            display_page_kind="routine",
+            salt_level=2800,
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([alert, routine])
 
         base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
-        FakeDatetime.times = [base, base + timedelta(minutes=2), base + timedelta(minutes=3, seconds=1)]
+        FakeDatetime.times = [base, base + timedelta(minutes=1)]
 
         first = await cast(Any, coord).async_request_refresh()
-        assert first["display_alert"] is None
+        assert first["display_alert"] == "No Flow / Check System"
         assert first["display_alert_candidate"] == "No Flow / Check System"
         assert first["display_alert_observations"] == 1
 
         second = await cast(Any, coord).async_request_refresh()
+        assert second["display_page_kind"] == "routine"
+        assert second["display_alert"] == "No Flow / Check System"
+        assert second["display_alert_candidate"] == "No Flow / Check System"
+
+    asyncio.run(run())
+
+
+def test_display_alert_confirms_when_same_alert_recurs_between_routine_pages():
+    async def run():
+        entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
+        coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
+        alert = AquaConnectStatus(
+            display_line_1="Service Required",
+            display_line_2="Inspect Cell",
+            display_message="Service Required / Inspect Cell",
+            display_page_kind="alert",
+            display_alert="Service Required / Inspect Cell",
+            raw_leds="EDTDDCDD3333",
+        )
+        routine = AquaConnectStatus(
+            display_line_1="Pool Temp 85&#176F",
+            display_message="Pool Temp 85&#176F",
+            display_page_kind="routine",
+            pool_temperature=85,
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([alert, routine, alert, routine, alert])
+
+        base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
+        FakeDatetime.times = [
+            base,
+            base + timedelta(minutes=1),
+            base + timedelta(minutes=2),
+            base + timedelta(minutes=3),
+            base + timedelta(minutes=4),
+        ]
+
+        first = await cast(Any, coord).async_request_refresh()
+        assert first["display_alert"] is None
+        assert first["display_alert_candidate"] == "Service Required / Inspect Cell"
+        assert first["display_alert_observations"] == 1
+
+        second = await cast(Any, coord).async_request_refresh()
+        assert second["display_page_kind"] == "routine"
         assert second["display_alert"] is None
-        assert second["display_alert_observations"] == 2
+        assert second["display_alert_candidate"] == "Service Required / Inspect Cell"
+        assert second["display_alert_observations"] == 1
 
         third = await cast(Any, coord).async_request_refresh()
-        assert third["display_alert"] == "No Flow / Check System"
-        assert third["display_alert_observations"] == 3
+        assert third["display_alert"] is None
+        assert third["display_alert_observations"] == 2
+
+        fourth = await cast(Any, coord).async_request_refresh()
+        assert fourth["display_page_kind"] == "routine"
+        assert fourth["display_alert"] is None
+        assert fourth["display_alert_candidate"] == "Service Required / Inspect Cell"
+        assert fourth["display_alert_observations"] == 2
+
+        fifth = await cast(Any, coord).async_request_refresh()
+        assert fifth["display_alert"] == "Service Required / Inspect Cell"
+        assert fifth["display_alert_observations"] == 3
 
     asyncio.run(run())
 
@@ -254,7 +350,7 @@ def test_display_alert_does_not_trigger_during_short_menu_navigation():
 
         third = await cast(Any, coord).async_request_refresh()
         assert third["display_alert"] is None
-        assert third["display_alert_candidate"] is None
+        assert third["display_alert_candidate"] == "Settings Menu / Heater Config"
         assert third["display_page_kind"] == "clock"
 
     asyncio.run(run())
