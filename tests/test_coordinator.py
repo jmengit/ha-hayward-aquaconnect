@@ -470,14 +470,14 @@ def test_measurement_values_are_retained_until_twenty_four_hour_stale_threshold(
     asyncio.run(run())
 
 
-def test_heater_setpoint_is_retained_until_seventy_two_hour_stale_threshold():
+def test_heater_setpoint_persists_until_seen_again_without_timeout():
     async def run():
         entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
         coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
         setpoint = AquaConnectStatus(
-            display_line_1="Heat Pump",
+            display_line_1="Pool Heat",
             display_line_2="84&#176F Set Point",
-            display_message="Heat Pump / 84&#176F Set Point",
+            display_message="Pool Heat / 84&#176F Set Point",
             display_page_kind="routine",
             heater_setpoint=84,
             raw_leds="EDTDDCDD3333",
@@ -489,10 +489,18 @@ def test_heater_setpoint_is_retained_until_seventy_two_hour_stale_threshold():
             display_page_kind="routine",
             raw_leds="EDTDDCDD3333",
         )
-        cast(Any, coord).client = FakeClient([setpoint, routine, routine])
+        updated_setpoint = AquaConnectStatus(
+            display_line_1="Pool Heat",
+            display_line_2="86&#176F Set Point",
+            display_message="Pool Heat / 86&#176F Set Point",
+            display_page_kind="routine",
+            heater_setpoint=86,
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([setpoint, routine, updated_setpoint])
 
         base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
-        FakeDatetime.times = [base, base + timedelta(hours=71, minutes=59), base + timedelta(hours=72, seconds=1)]
+        FakeDatetime.times = [base, base + timedelta(days=30), base + timedelta(days=31)]
 
         first = await cast(Any, coord).async_request_refresh()
         assert first["heater_setpoint"] == 84
@@ -500,7 +508,7 @@ def test_heater_setpoint_is_retained_until_seventy_two_hour_stale_threshold():
         retained = await cast(Any, coord).async_request_refresh()
         assert retained["heater_setpoint"] == 84
 
-        expired = await cast(Any, coord).async_request_refresh()
-        assert expired["heater_setpoint"] is None
+        updated = await cast(Any, coord).async_request_refresh()
+        assert updated["heater_setpoint"] == 86
 
     asyncio.run(run())

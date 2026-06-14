@@ -132,7 +132,6 @@ class AquaConnectSensor(AquaConnectEntity, SensorEntity):
                     "last_read_error": self.coordinator.last_read_error,
                     "measurement_last_seen": (self.coordinator.data or {}).get("measurement_last_seen", {}),
                     "measurement_stale_after_seconds": (self.coordinator.data or {}).get("measurement_stale_after_seconds"),
-                    "heater_setpoint_stale_after_seconds": (self.coordinator.data or {}).get("heater_setpoint_stale_after_seconds"),
                 }
             )
         return attrs

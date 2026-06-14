@@ -84,7 +84,7 @@ Example:
 - Display Line 2
 - Raw LEDs
 
-The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page. Values are also retained while the pump is off and a page is not available; individual measurements are cleared only after they have not been observed for 24 hours. Heater Set Point is retained for 72 hours after it was last observed, then becomes unknown.
+The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page. Values are also retained while the pump is off and a page is not available; individual measurements are cleared only after they have not been observed for 24 hours. Heater Set Point is captured from heater/pool-heat menu pages and persists indefinitely until the next setpoint page is observed.
 
 Display-related sensors are diagnostic/disabled by default because the LCD rotates frequently.
 

@@ -43,8 +43,8 @@ _MEASUREMENT_KEYS = (
 _RETAINED_MEASUREMENT_STALE_AFTER = {
     "super_chlorinate_running": timedelta(minutes=10),
     "super_chlorinate_time_remaining": timedelta(minutes=10),
-    "heater_setpoint": timedelta(hours=72),
 }
+_INDEFINITELY_RETAINED_MEASUREMENT_KEYS = ("heater_setpoint",)
 
 
 class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -171,9 +171,18 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif key not in merged:
                 merged[key] = None
 
+        for key in _INDEFINITELY_RETAINED_MEASUREMENT_KEYS:
+            current_value = getattr(status, key)
+            if current_value is not None:
+                self.measurement_last_seen[key] = now
+            last_seen = self.measurement_last_seen.get(key)
+            if last_seen is not None:
+                last_seen_attrs[key] = last_seen.isoformat()
+            elif key not in merged:
+                merged[key] = None
+
         merged["measurement_last_seen"] = last_seen_attrs
         merged["measurement_stale_after_seconds"] = int(_MEASUREMENT_STALE_AFTER.total_seconds())
-        merged["heater_setpoint_stale_after_seconds"] = int(_RETAINED_MEASUREMENT_STALE_AFTER["heater_setpoint"].total_seconds())
 
     async def _async_update_data(self) -> dict[str, Any]:
         now = datetime.now(UTC)
