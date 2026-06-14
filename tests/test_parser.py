@@ -50,6 +50,14 @@ def test_parse_pool_heat_menu_setpoint():
     assert status.heater_setpoint == 86
 
 
+def test_parse_pool_heat_pump_menu_temperature_as_setpoint():
+    status = parse_payload("<body>Pool Heat Pump xxx87&#176FxxxEDTDDCDD3333xxx</body>")
+
+    assert status.display_page_kind == "routine"
+    assert status.display_alert is None
+    assert status.heater_setpoint == 87
+
+
 def test_classifies_routine_clock_and_alert_display_pages():
     clock = parse_payload("<body>Friday xxx10:57AxxxEDTDDCDD3333xxx</body>")
     assert clock.display_page_kind == "clock"

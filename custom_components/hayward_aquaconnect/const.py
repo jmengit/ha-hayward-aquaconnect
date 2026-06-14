@@ -1,6 +1,6 @@
 from typing import Final
 
-VERSION: Final = "0.3.5"
+VERSION: Final = "0.3.6"
 DOMAIN: Final = "hayward_aquaconnect"
 DEFAULT_NAME: Final = "Hayward AquaConnect"
 DEFAULT_SCAN_INTERVAL: Final = 5

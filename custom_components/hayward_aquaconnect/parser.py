@@ -166,6 +166,9 @@ def parse_payload(payload: str, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLO
 
     if match := re.search(r"(\d+)\s*(?:°|&#176;?|&deg;?)?\s*F\s+Set\s+Point", text, re.I):
         status.heater_setpoint = int(match.group(1))
+    elif status.display_line_1 and status.display_line_1.lower().startswith("pool heat pump") and status.display_line_2:
+        if match := re.search(r"(\d+)\s*(?:°|&#176;?|&deg;?)?\s*F", status.display_line_2, re.I):
+            status.heater_setpoint = int(match.group(1))
 
     status.equipment = decode_equipment(status.raw_leds, slots)
     return status
