@@ -25,6 +25,23 @@ def test_parse_temperatures_and_salt():
     assert parse_payload("<body>Salt Level     xxx      2700 PPM      xxxEDTDDCDD3333xxx</body>").salt_level == 2700
 
 
+def test_parse_super_chlorinate_as_routine_with_remaining_time():
+    status = parse_payload("<body>Super Chlorinate xxx18:21 remainingxxxEDTDDCDD3333xxx</body>")
+
+    assert status.display_page_kind == "routine"
+    assert status.display_alert is None
+    assert status.super_chlorinate_running is True
+    assert status.super_chlorinate_time_remaining == 1101
+
+
+def test_parse_heater_setpoint():
+    status = parse_payload("<body>Heat Pump xxx84&#176F Set PointxxxEDTDDCDD3333xxx</body>")
+
+    assert status.display_page_kind == "routine"
+    assert status.display_alert is None
+    assert status.heater_setpoint == 84
+
+
 def test_classifies_routine_clock_and_alert_display_pages():
     clock = parse_payload("<body>Friday xxx10:57AxxxEDTDDCDD3333xxx</body>")
     assert clock.display_page_kind == "clock"
@@ -57,7 +74,21 @@ def test_decode_all_configured_slots():
     equipment = decode_equipment("EDTDDCDD3333")
     assert set(equipment) >= {"heat_pump", "pool", "deck_light", "waterfall", "filter_pump", "fount_lt", "pool_light"}
     assert equipment["heat_pump"]["press_key_id"] == "13"
+    assert equipment["heat_pump"]["name"] == "Heater Manual"
+    assert equipment["heat_pump"]["used"] is True
     assert equipment["waterfall"]["press_key_id"] == "0A"
+    assert equipment["cooling"]["name"] == "Pool Chiller"
+
+
+def test_heater_manual_and_pool_chiller_controls_are_enabled_by_default():
+    slots = {slot.slug: slot for slot in resolve_equipment_slots()}
+
+    assert slots["heat_pump"].name == "Heater Manual"
+    assert slots["heat_pump"].enable_switch is True
+    assert slots["heat_pump"].press_key_id == "13"
+    assert slots["cooling"].name == "Pool Chiller"
+    assert slots["cooling"].enable_switch is True
+    assert slots["cooling"].press_key_id == "0E"
 
 
 def test_slot_overrides_change_metadata_and_preserve_defaults():

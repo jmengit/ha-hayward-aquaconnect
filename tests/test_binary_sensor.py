@@ -107,6 +107,7 @@ setattr(ha, "helpers", helpers)
 from custom_components.hayward_aquaconnect.binary_sensor import (  # noqa: E402
     AquaConnectConnectionAlertBinarySensor,
     AquaConnectDisplayAlertBinarySensor,
+    AquaConnectSuperChlorinateBinarySensor,
 )
 
 
@@ -161,3 +162,12 @@ def test_display_alert_binary_sensor_remains_simple_problem_sensor():
 
     assert sensor.is_on is True
     assert sensor.extra_state_attributes["message"] == "No Flow / Check System"
+
+
+def test_super_chlorinate_binary_sensor_tracks_running_state():
+    sensor = AquaConnectSuperChlorinateBinarySensor(
+        FakeCoordinator(data={"super_chlorinate_running": True, "super_chlorinate_time_remaining": 1101})
+    )
+
+    assert sensor.is_on is True
+    assert sensor.extra_state_attributes["time_remaining_minutes"] == 1101

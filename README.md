@@ -2,7 +2,7 @@
 
 A Home Assistant custom integration for Hayward AquaConnect AQ-CO-HOMENET adapters using the local web server exposed by the device.
 
-This project is intentionally conservative: it supports read-only status and a small set of direct equipment switches. It does **not** automate deep LCD menu navigation, heater setpoints, schedules, timers, settings menus, or superchlorinate yet.
+This project is intentionally conservative: it supports read-only status, LCD-derived status sensors, and a small set of direct equipment switches. It does **not** automate deep LCD menu navigation, editing heater setpoints, schedules, timers, settings menus, or starting/stopping superchlorinate.
 
 ## Supported hardware
 
@@ -78,11 +78,13 @@ Example:
 - Air Temperature
 - Salt Level
 - Chlorinator Percent
+- Super Chlorinate Time Remaining
+- Heater Set Point
 - Display Line 1
 - Display Line 2
 - Raw LEDs
 
-The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page. Values are also retained while the pump is off and a page is not available; individual measurements are cleared only after they have not been observed for 24 hours.
+The AquaConnect LCD rotates through pages, so temperature/salt/chlorinator sensors retain their last observed values while the display is on another page. Values are also retained while the pump is off and a page is not available; individual measurements are cleared only after they have not been observed for 24 hours. Heater Set Point is retained for 72 hours after it was last observed, then becomes unknown.
 
 Display-related sensors are diagnostic/disabled by default because the LCD rotates frequently.
 
@@ -114,14 +116,16 @@ Two simple `problem` binary sensors provide at-a-glance alerting:
 
 This allows brief manual menu use while still surfacing real persistent controller messages such as flow/salt/system warnings.
 
+Super Chlorinate is exposed separately as a non-problem running binary sensor plus a time-remaining sensor when the LCD shows the countdown. It is intentionally not treated as a Display Alert problem.
+
 ### Status binary sensors
 
 Used equipment slots are exposed as status entities:
 
-- Heat Pump
+- Heater Manual
 - Pool
 - Pool Deck Light
-- Cooling
+- Pool Chiller
 - Waterfall Pump
 - Filter Pump
 - Fire Goblets
@@ -134,6 +138,8 @@ Unused slots are intentionally not exposed by default in this first version.
 The following direct switches are exposed:
 
 - Filter Pump
+- Heater Manual
+- Pool Chiller
 - Pool Light
 - Pool Deck Light
 - Waterfall Pump
@@ -164,9 +170,8 @@ Each entity includes command diagnostic attributes such as `last_command_result`
   - timers
   - settings menu
   - schedule editing
-  - heater setpoints
-  - heat pump mode changes
-  - superchlorinate
+  - changing heater setpoints
+  - starting/stopping superchlorinate
   - chlorinator output changes
 - Commands are serialized inside the integration so two switch commands do not run at the same time.
 - If someone manually uses the AquaConnect panel/app while Home Assistant is sending a command, verification may fail or the command may be rejected.

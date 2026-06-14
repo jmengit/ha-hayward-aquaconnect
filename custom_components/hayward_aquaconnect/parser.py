@@ -20,6 +20,10 @@ _ROUTINE_DISPLAY_TITLES = {
     "salt level",
     "pool chlorinator",
     "heat pump",
+    "heater set point",
+    "pool heat",
+    "spa heat",
+    "super chlorinate",
 }
 
 
@@ -35,6 +39,9 @@ class AquaConnectStatus:
     air_temperature: int | None = None
     salt_level: int | None = None
     chlorinator_percent: int | None = None
+    super_chlorinate_running: bool | None = None
+    super_chlorinate_time_remaining: int | None = None
+    heater_setpoint: int | None = None
     equipment: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
@@ -49,6 +56,9 @@ class AquaConnectStatus:
             "air_temperature": self.air_temperature,
             "salt_level": self.salt_level,
             "chlorinator_percent": self.chlorinator_percent,
+            "super_chlorinate_running": self.super_chlorinate_running,
+            "super_chlorinate_time_remaining": self.super_chlorinate_time_remaining,
+            "heater_setpoint": self.heater_setpoint,
             "equipment": self.equipment,
         }
 
@@ -148,6 +158,14 @@ def parse_payload(payload: str, slots: tuple[EquipmentSlot, ...] = EQUIPMENT_SLO
     elif status.display_line_1 == "Pool Chlorinator" and status.display_line_2:
         if match := re.search(r"(\d+)%", status.display_line_2):
             status.chlorinator_percent = int(match.group(1))
+
+    if status.display_line_1 and status.display_line_1.lower().startswith("super chlorinate"):
+        status.super_chlorinate_running = True
+        if match := re.search(r"(\d{1,2}):(\d{2})\s*remaining", status.display_line_2 or "", re.I):
+            status.super_chlorinate_time_remaining = int(match.group(1)) * 60 + int(match.group(2))
+
+    if match := re.search(r"(\d+)\s*(?:°|&#176;?|&deg;?)?\s*F\s+Set\s+Point", text, re.I):
+        status.heater_setpoint = int(match.group(1))
 
     status.equipment = decode_equipment(status.raw_leds, slots)
     return status

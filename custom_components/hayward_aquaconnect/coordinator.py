@@ -40,6 +40,11 @@ _MEASUREMENT_KEYS = (
     "salt_level",
     "chlorinator_percent",
 )
+_RETAINED_MEASUREMENT_STALE_AFTER = {
+    "super_chlorinate_running": timedelta(minutes=10),
+    "super_chlorinate_time_remaining": timedelta(minutes=10),
+    "heater_setpoint": timedelta(hours=72),
+}
 
 
 class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -153,20 +158,22 @@ class AquaConnectCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _apply_measurement_freshness(self, merged: dict[str, Any], status, now: datetime) -> None:
         last_seen_attrs = dict(merged.get("measurement_last_seen") or {})
-        for key in _MEASUREMENT_KEYS:
+        stale_windows = {key: _MEASUREMENT_STALE_AFTER for key in _MEASUREMENT_KEYS} | _RETAINED_MEASUREMENT_STALE_AFTER
+        for key, stale_after in stale_windows.items():
             current_value = getattr(status, key)
             if current_value is not None:
                 self.measurement_last_seen[key] = now
             last_seen = self.measurement_last_seen.get(key)
             if last_seen is not None:
                 last_seen_attrs[key] = last_seen.isoformat()
-                if current_value is None and now - last_seen > _MEASUREMENT_STALE_AFTER:
+                if current_value is None and now - last_seen > stale_after:
                     merged[key] = None
             elif key not in merged:
                 merged[key] = None
 
         merged["measurement_last_seen"] = last_seen_attrs
         merged["measurement_stale_after_seconds"] = int(_MEASUREMENT_STALE_AFTER.total_seconds())
+        merged["heater_setpoint_stale_after_seconds"] = int(_RETAINED_MEASUREMENT_STALE_AFTER["heater_setpoint"].total_seconds())
 
     async def _async_update_data(self) -> dict[str, Any]:
         now = datetime.now(UTC)

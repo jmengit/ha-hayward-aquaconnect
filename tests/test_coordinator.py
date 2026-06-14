@@ -468,3 +468,39 @@ def test_measurement_values_are_retained_until_twenty_four_hour_stale_threshold(
         assert expired["pool_temperature"] is None
 
     asyncio.run(run())
+
+
+def test_heater_setpoint_is_retained_until_seventy_two_hour_stale_threshold():
+    async def run():
+        entry = FakeEntry(data={"host": "192.168.86.182"}, options={"scan_interval": 5})
+        coord = coordinator_mod.AquaConnectCoordinator(SimpleNamespace(session=None), entry)
+        setpoint = AquaConnectStatus(
+            display_line_1="Heat Pump",
+            display_line_2="84&#176F Set Point",
+            display_message="Heat Pump / 84&#176F Set Point",
+            display_page_kind="routine",
+            heater_setpoint=84,
+            raw_leds="EDTDDCDD3333",
+        )
+        routine = AquaConnectStatus(
+            display_line_1="Heat Pump",
+            display_line_2="Manual Off",
+            display_message="Heat Pump / Manual Off",
+            display_page_kind="routine",
+            raw_leds="EDTDDCDD3333",
+        )
+        cast(Any, coord).client = FakeClient([setpoint, routine, routine])
+
+        base = datetime(2026, 6, 12, 12, 0, tzinfo=UTC)
+        FakeDatetime.times = [base, base + timedelta(hours=71, minutes=59), base + timedelta(hours=72, seconds=1)]
+
+        first = await cast(Any, coord).async_request_refresh()
+        assert first["heater_setpoint"] == 84
+
+        retained = await cast(Any, coord).async_request_refresh()
+        assert retained["heater_setpoint"] == 84
+
+        expired = await cast(Any, coord).async_request_refresh()
+        assert expired["heater_setpoint"] is None
+
+    asyncio.run(run())

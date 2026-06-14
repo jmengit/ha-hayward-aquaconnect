@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -52,6 +52,21 @@ SENSORS: tuple[AquaConnectSensorDescription, ...] = (
         name="Chlorinator Percent",
         data_key="chlorinator_percent",
         native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    AquaConnectSensorDescription(
+        key="super_chlorinate_time_remaining",
+        name="Super Chlorinate Time Remaining",
+        data_key="super_chlorinate_time_remaining",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+    ),
+    AquaConnectSensorDescription(
+        key="heater_setpoint",
+        name="Heater Set Point",
+        data_key="heater_setpoint",
+        native_unit_of_measurement=UnitOfTemperature.FAHRENHEIT,
+        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     AquaConnectSensorDescription(
@@ -117,6 +132,7 @@ class AquaConnectSensor(AquaConnectEntity, SensorEntity):
                     "last_read_error": self.coordinator.last_read_error,
                     "measurement_last_seen": (self.coordinator.data or {}).get("measurement_last_seen", {}),
                     "measurement_stale_after_seconds": (self.coordinator.data or {}).get("measurement_stale_after_seconds"),
+                    "heater_setpoint_stale_after_seconds": (self.coordinator.data or {}).get("heater_setpoint_stale_after_seconds"),
                 }
             )
         return attrs

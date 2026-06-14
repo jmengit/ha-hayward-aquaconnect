@@ -16,14 +16,14 @@ class EquipmentSlot:
 
 DEFAULT_EQUIPMENT_SLOTS: tuple[EquipmentSlot, ...] = (
     EquipmentSlot(0, "system_off", "System Off", False, "04"),
-    EquipmentSlot(6, "heat_pump", "Heat Pump", True, "13"),
+    EquipmentSlot(6, "heat_pump", "Heater Manual", True, "13", True),
     EquipmentSlot(12, "aux3", "AUX3", False, "0C"),
     EquipmentSlot(1, "pool", "Pool", True, "07"),
     EquipmentSlot(7, "valve3", "Valve3", False, "11"),
     EquipmentSlot(13, "deck_light", "Pool Deck Light", True, "0D", True),
     EquipmentSlot(2, "spa", "Spa", False, "07"),
     EquipmentSlot(8, "valve4", "Valve4", False, "12"),
-    EquipmentSlot(14, "cooling", "Cooling", True, "0E"),
+    EquipmentSlot(14, "cooling", "Pool Chiller", True, "0E", True),
     EquipmentSlot(3, "spillover", "Spillover", False, "07"),
     EquipmentSlot(9, "waterfall", "Waterfall Pump", True, "0A", True),
     EquipmentSlot(15, "aux6", "AUX6", False, "0F"),

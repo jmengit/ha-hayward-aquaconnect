@@ -13,7 +13,11 @@ from .slots import EquipmentSlot
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [AquaConnectDisplayAlertBinarySensor(coordinator), AquaConnectConnectionAlertBinarySensor(coordinator)]
+        [
+            AquaConnectDisplayAlertBinarySensor(coordinator),
+            AquaConnectConnectionAlertBinarySensor(coordinator),
+            AquaConnectSuperChlorinateBinarySensor(coordinator),
+        ]
         + [AquaConnectEquipmentBinarySensor(coordinator, slot) for slot in coordinator.used_slots]
     )
 
@@ -76,6 +80,25 @@ class AquaConnectConnectionAlertBinarySensor(AquaConnectEntity, BinarySensorEnti
                 "last_read_error": self.coordinator.last_read_error,
             }
         )
+        return attrs
+
+
+class AquaConnectSuperChlorinateBinarySensor(AquaConnectEntity, BinarySensorEntity):
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.data['host']}_super_chlorinate"
+        self._attr_name = "Super Chlorinate"
+        self._attr_device_class = getattr(BinarySensorDeviceClass, "RUNNING", None)
+
+    @property
+    def is_on(self) -> bool:
+        return bool((self.coordinator.data or {}).get("super_chlorinate_running"))
+
+    @property
+    def extra_state_attributes(self):
+        attrs = super().extra_state_attributes or {}
+        data = self.coordinator.data or {}
+        attrs.update({"time_remaining_minutes": data.get("super_chlorinate_time_remaining")})
         return attrs
 
 
